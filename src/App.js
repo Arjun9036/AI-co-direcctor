@@ -18,8 +18,8 @@ const App = () => {
     <Router>
       <Routes>
         <Route path="/" element={ <Home />} />
-        <Route path="/signup" element={<Signup setAuth={setAuth} />} />
-        <Route path="/login" element={<Login setAuth={setAuth} />} />
+        <Route path="/signup" element={<Signup />} />
+        <Route path="/login" element={<Login />} />
         <Route path="/script-transformer" element={<ScriptTransformer />} />
         <Route path="/video-analyzer" element={<VideoAnalyzer />} />
 

@@ -1,4 +1,4 @@
-import React from 'react';
+/*import React from 'react';
 import { Button, Typography, Container, Box, Grid, Paper } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 
@@ -15,7 +15,7 @@ const Home = () => {
 
   return (
     <>
-      {/* Navbar */}
+      {Navbar }
       <Box
         component="nav"
         sx={{
@@ -34,7 +34,7 @@ const Home = () => {
           zIndex: 1000,
         }}
       >
-        {/* Brand Name */}
+        
         <Typography
           variant="h5"
           sx={{
@@ -46,8 +46,8 @@ const Home = () => {
           STORYFLOW
         </Typography>
 
-        {/* Sign Out Button */}
-        <Box sx={{ mr: '100px' }}> {/* 👈 Moves 100px from the right edge */}
+       
+        <Box sx={{ mr: '100px' }}> {/* 👈 Moves 100px from the right edge }
           <Button
             variant="outlined"
             sx={{
@@ -64,8 +64,8 @@ const Home = () => {
         </Box>
       </Box>
 
-      {/* Hero Section */}
-      {/* Hero Section with Video Background */}
+      {/* Hero Section }
+      {/* Hero Section with Video Background }
 <Box
   sx={{
     height: "100vh",
@@ -79,7 +79,7 @@ const Home = () => {
   }}
 >
 
-  {/* Background Video */}
+  {/* Background Video }
   <video
     autoPlay
     loop
@@ -102,7 +102,7 @@ const Home = () => {
     <source src="/background.mp4" type="video/mp4" />
   </video>
 
-  {/* Content Above Video */}
+  {/* Content Above Video }
   <Box sx={{ maxWidth: "800px", zIndex: 2, px: 2 }}>
     <Typography
       variant="h3"
@@ -125,7 +125,7 @@ const Home = () => {
 </Box>
 
 
-      {/* Features Section */}
+      {/* Features Section }
       <Container sx={{ py: 10 }}>
         <Typography
           variant="h4"
@@ -215,11 +215,12 @@ const Home = () => {
 };
 
 export default Home;
+*/
 
 
 
 
-/*
+
 import React from 'react';
 import { Typography, Container, Box, Grid, Paper } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
@@ -404,5 +405,3 @@ const Home = () => {
 };
 
 export default Home;
-
-*/
