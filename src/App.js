@@ -5,8 +5,9 @@ import Login from './pages/Login';
 import Home from './pages/Home';
 import ScriptTransformer from './pages/ScriptTransformer';
 import VideoAnalyzer from './pages/VideoAnalyzer';
-/*
+
 const App = () => {
+  /*
   const [auth, setAuth] = useState(false);
 
   useEffect(() => {
