@@ -1,29 +1,17 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import Signup from './pages/Signup';
-import Login from './pages/Login';
 import Home from './pages/Home';
 import ScriptTransformer from './pages/ScriptTransformer';
 import VideoAnalyzer from './pages/VideoAnalyzer';
+import './index.css'; // Ensure CSS is imported
 
 const App = () => {
-  /*
-  const [auth, setAuth] = useState(false);
-
-  useEffect(() => {
-    const token = localStorage.getItem('token');
-    setAuth(!!token);
-  }, []);
-*/
   return (
     <Router>
       <Routes>
-        <Route path="/" element={ <Home />} />
-        <Route path="/signup" element={<Signup />} />
-        <Route path="/login" element={<Login />} />
+        <Route path="/" element={<Home />} />
         <Route path="/script-transformer" element={<ScriptTransformer />} />
         <Route path="/video-analyzer" element={<VideoAnalyzer />} />
-
       </Routes>
     </Router>
   );

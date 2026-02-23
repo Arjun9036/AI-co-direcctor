@@ -1,314 +1,177 @@
-import React, { useState } from "react";
-import {
-  Box,
-  Button,
-  Container,
-  Typography,
-  Paper,
-  LinearProgress,
-  TextField,
-} from "@mui/material";
-import ReactMarkdown from "react-markdown";
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { ArrowLeft, UploadCloud, X, Loader2, CheckCircle, Sparkles, XCircle } from 'lucide-react';
+
+const VIDEO_API_URL = "https://arjun9036-multimodal-emotion-backend.hf.space/predict";
 
 const VideoAnalyzer = () => {
+  const navigate = useNavigate();
   const [file, setFile] = useState(null);
-  const [userEmotion, setUserEmotion] = useState("");
+  const [preview, setPreview] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
   const [result, setResult] = useState(null);
+  const [intendedEmotion, setIntendedEmotion] = useState('');
+  const [error, setError] = useState('');
 
-  const backendURL =
-    "https://arjun9036-multimodal-emotion-backend.hf.space/predict";
+  // Cleanup object URL
+  useEffect(() => {
+    return () => {
+      if (preview) URL.revokeObjectURL(preview);
+    }
+  }, [preview]);
 
   const handleFileChange = (e) => {
-    setFile(e.target.files[0]);
-    setResult(null);
-    setError("");
+    const selected = e.target.files[0];
+    if (selected) {
+      setFile(selected);
+      setPreview(URL.createObjectURL(selected));
+      setResult(null);
+      setError('');
+    }
   };
 
   const handleAnalyze = async () => {
-    if (!file || !userEmotion.trim()) {
-      setError("⚠️ Please upload a video AND enter your intended emotion.");
+    if (!file) {
+      setError("Please select a file first.");
       return;
     }
-
-    setError("");
-    setResult(null);
+    
     setLoading(true);
-
-    const formData = new FormData();
-    formData.append("video", file);
-    formData.append("user_emotion", userEmotion);
+    setError('');
+    setResult(null);
 
     try {
-      const response = await fetch(backendURL, {
+      const formData = new FormData();
+      formData.append("video", file);
+      formData.append("user_emotion", intendedEmotion);
+
+      const response = await fetch(VIDEO_API_URL, {
         method: "POST",
         body: formData,
       });
 
       if (!response.ok) {
-        const text = await response.text();
-        throw new Error(text);
+        const errorText = await response.text();
+        throw new Error(errorText || "Server Error");
       }
 
       const data = await response.json();
       setResult(data);
     } catch (err) {
-      console.error("Error:", err);
-      setError("❌ Failed to analyze video. Ensure your HuggingFace backend is public.");
+      console.error("Analysis Failed:", err);
+      setError("Failed to analyze video. Ensure the file isn't too large and the backend is active.");
     } finally {
       setLoading(false);
     }
   };
 
-  // ✅ Download Report
-  const handleDownload = () => {
-    if (!result) return;
-
-    const report = `
-🎬 Video Emotion Analysis
-File: ${file?.name}
-
-Intended Emotion: ${userEmotion}
-Predicted Emotion: ${result.predicted_emotion}
-Confidence: ${(result.confidence * 100).toFixed(2)}%
-Match: ${result.match ? "✅ Yes" : "❌ No"}
-
-Recommendations:
-${
-  typeof result.recommendations === "object"
-    ? result.recommendations.full_recommendation
-    : result.recommendations
-}
-`;
-
-    const blob = new Blob([report], { type: "text/plain;charset=utf-8" });
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    link.download = `Video_Emotion_Report.txt`;
-    link.click();
-  };
-
   return (
-    <Box
-      sx={{
-        minHeight: "100vh",
-        background: "linear-gradient(to right, #000000, #1a1a1a)",
-        color: "white",
-        py: 10,
-        px: { xs: 2, sm: 6 },
-      }}
-    >
-      <Container maxWidth="md">
-        {/* Title */}
-        <Typography
-          variant="h4"
-          align="center"
-          fontWeight="bold"
-          sx={{
-            mb: 6,
-            color: "orange",
-            textShadow: "0px 0px 12px rgba(255,140,0,0.5)",
-          }}
-        >
-          🎥 Video Emotion Analyzer
-        </Typography>
+    <div className="min-h-screen p-4 md:p-8 relative">
+      <div className="ambient-glow" style={{background: 'radial-gradient(circle at center, rgba(59, 130, 246, 0.08) 0%, rgba(0, 0, 0, 0) 70%)'}}></div>
+      <button onClick={() => navigate('/')} className="flex items-center gap-2 text-gray-400 hover:text-white mb-8 transition-colors">
+        <ArrowLeft size={20} /> Back to Home
+      </button>
 
-        {/* Upload Section */}
-        <Paper
-          elevation={6}
-          sx={{
-            p: { xs: 3, sm: 5 },
-            borderRadius: 4,
-            backgroundColor: "#111",
-            border: "1px solid rgba(255,255,255,0.1)",
-            backdropFilter: "blur(8px)",
-            textAlign: "center",
-          }}
-        >
-          <Typography variant="h6" sx={{ mb: 2, color: "#f5f5f5" }}>
-            Upload your acting video for AI analysis
-          </Typography>
+      <div className="max-w-4xl mx-auto animate-fade-in">
+        <div className="text-center mb-10">
+          <h2 className="text-4xl font-bold mb-2">Video <span className="text-blue-500">Analyzer</span></h2>
+          <p className="text-gray-400">Upload performance footage for AI-driven emotional feedback.</p>
+        </div>
 
-          {/* Upload Button */}
-          <Button
-            variant="contained"
-            component="label"
-            sx={{
-              mt: 2,
-              backgroundColor: "orange",
-              color: "white",
-              fontWeight: "bold",
-              px: 4,
-              py: 1,
-              borderRadius: "30px",
-              "&:hover": { backgroundColor: "#cc5500" },
-            }}
-          >
-            Choose Video
-            <input
-              hidden
-              accept="video/*"
-              type="file"
-              onChange={handleFileChange}
-            />
-          </Button>
-
-          {file && (
-            <>
-              <Typography sx={{ mt: 2, color: "gray" }}>
-                Selected File: <b>{file.name}</b>
-              </Typography>
-
-              <video
-                controls
-                src={URL.createObjectURL(file)}
-                style={{
-                  width: "100%",
-                  marginTop: 20,
-                  borderRadius: 10,
-                  border: "1px solid rgba(255,255,255,0.2)",
-                }}
-              />
-            </>
+        <div className="glass-panel rounded-2xl p-6 mb-8">
+          {!preview ? (
+            <div className="border-2 border-dashed border-white/10 rounded-xl p-12 hover:border-blue-500/50 hover:bg-blue-500/5 transition-all text-center group cursor-pointer relative">
+              <input type="file" accept="video/*" className="absolute inset-0 opacity-0 cursor-pointer" onChange={handleFileChange} />
+              <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
+                <span className="text-gray-400 group-hover:text-blue-400"><UploadCloud size={32} /></span>
+              </div>
+              <h3 className="text-lg font-bold text-white mb-1">Upload Performance</h3>
+              <p className="text-gray-500 text-sm">Drag & drop or click to browse (MP4, MOV)</p>
+            </div>
+          ) : (
+            <div className="grid md:grid-cols-2 gap-6">
+              <div className="relative rounded-xl overflow-hidden bg-black aspect-video border border-white/10">
+                <video src={preview} controls className="w-full h-full object-contain" />
+                <button onClick={() => {setFile(null); setPreview(null); setResult(null)}} className="absolute top-2 right-2 bg-black/60 hover:bg-red-600 text-white p-1 rounded-md transition-colors">
+                  <X size={16} />
+                </button>
+              </div>
+              <div className="flex flex-col justify-center gap-4">
+                <div>
+                  <label className="text-sm text-gray-400">Intended Emotion</label>
+                  <input 
+                    type="text" 
+                    placeholder="e.g. Joy, Anger, Surprise" 
+                    className="w-full bg-black/40 border border-white/10 rounded-lg p-3 text-white focus:border-blue-500 outline-none mt-1"
+                    value={intendedEmotion}
+                    onChange={(e) => setIntendedEmotion(e.target.value)}
+                  />
+                </div>
+                
+                <button 
+                  onClick={handleAnalyze} 
+                  disabled={loading} 
+                  className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-lg shadow-blue-900/20 px-6 py-3 rounded-full font-semibold transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  {loading ? <Loader2 size={18} className="animate-spin" /> : <Loader2 size={18} />}
+                  {loading ? "Analyzing Frames..." : "Start Analysis"}
+                </button>
+              </div>
+            </div>
           )}
+          {error && <p className="text-red-500 text-sm mt-4 text-center bg-red-500/10 p-2 rounded border border-red-500/20">{error}</p>}
+        </div>
 
-          {/* Emotion Input */}
-          <TextField
-            fullWidth
-            variant="outlined"
-            label="Your Intended Emotion"
-            placeholder="e.g., anger, joy, sadness"
-            value={userEmotion}
-            onChange={(e) => setUserEmotion(e.target.value)}
-            sx={{
-              mt: 4,
-              backgroundColor: "white",
-              borderRadius: 2,
-              "& input": { color: "black" },
-            }}
-          />
-
-          {/* Analyze Button */}
-          <Button
-            variant="contained"
-            onClick={handleAnalyze}
-            sx={{
-              mt: 4,
-              px: 6,
-              py: 1.5,
-              fontWeight: "bold",
-              borderRadius: "30px",
-              backgroundColor: "orange",
-              "&:hover": { backgroundColor: "#cc5500" },
-            }}
-            disabled={loading}
-          >
-            {loading ? "Analyzing Video…" : "Analyze Emotion"}
-          </Button>
-
-          {/* Progress Bar */}
-          {loading && (
-            <Box sx={{ width: "100%", mt: 4 }}>
-              <Typography sx={{ color: "gray", mb: 1 }}>
-                Processing video... please wait
-              </Typography>
-              <LinearProgress color="warning" />
-            </Box>
-          )}
-
-          {error && (
-            <Typography sx={{ mt: 3, color: "red" }}>{error}</Typography>
-          )}
-        </Paper>
-
-        {/* Output Section */}
-        {result && (
-          <Paper
-            elevation={4}
-            sx={{
-              mt: 6,
-              p: { xs: 3, sm: 5 },
-              borderRadius: 3,
-              backgroundColor: "#0f0f0f",
-              border: "1px solid rgba(255,255,255,0.1)",
-              color: "#f5f5f5",
-            }}
-          >
-            <Typography
-              variant="h6"
-              fontWeight="bold"
-              gutterBottom
-              sx={{ color: "orange" }}
-            >
-              🎬 Emotion Analysis Report
-            </Typography>
-
-            <Typography>
-              <b>Predicted Emotion:</b> {result.predicted_emotion}
-            </Typography>
-            <Typography>
-              <b>Confidence:</b> {(result.confidence * 100).toFixed(2)}%
-            </Typography>
-            <Typography>
-              <b>Match with Intended Emotion:</b>{" "}
-              {result.match ? "✅ Yes" : "❌ No"}
-            </Typography>
-
-            {/* ✅ Clean Markdown Recommendations */}
-            <Box
-              sx={{
-                mt: 4,
-                p: 3,
-                borderRadius: 2,
-                backgroundColor: "#1a1a1a",
-                border: "1px solid rgba(255,255,255,0.15)",
-              }}
-            >
-              <Typography
-                variant="h6"
-                sx={{ color: "orange", mb: 2, fontWeight: "bold" }}
-              >
-                💡 Recommendations
-              </Typography>
-
-              <Box
-                sx={{
-                  color: "#ddd",
-                  fontSize: "1rem",
-                  lineHeight: 1.7,
-                  "& h3": { color: "orange", marginTop: "16px" },
-                  "& strong": { color: "#fff" },
-                  "& ul": { paddingLeft: "20px", marginTop: "8px" },
-                  "& li": { marginBottom: "6px" },
-                }}
-              >
-                <ReactMarkdown>
-                  {typeof result.recommendations === "object"
-                    ? result.recommendations.full_recommendation
-                    : result.recommendations}
-                </ReactMarkdown>
-              </Box>
-            </Box>
-
-            {/* Download Button */}
-            <Button
-              variant="contained"
-              color="success"
-              sx={{
-                mt: 3,
-                px: 5,
-                borderRadius: "25px",
-                fontWeight: "bold",
-              }}
-              onClick={handleDownload}
-            >
-              Download Report
-            </Button>
-          </Paper>
+        {/* Results Section */}
+        {loading && (
+          <div className="text-center py-8">
+            <div className="h-2 w-64 bg-white/10 rounded-full mx-auto overflow-hidden">
+              <div className="h-full bg-blue-500 animate-[width_2s_ease-in-out_infinite]" style={{width: '50%'}}></div>
+            </div>
+            <p className="text-blue-400 mt-3 text-sm animate-pulse">Processing neural network layers...</p>
+          </div>
         )}
-      </Container>
-    </Box>
+
+        {result && !loading && (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 animate-fade-in">
+            <div className="glass-panel rounded-2xl p-6 text-center">
+              <p className="text-xs text-gray-500 uppercase tracking-widest mb-1">Intended</p>
+              <p className="text-xl font-bold text-gray-300">{intendedEmotion || "N/A"}</p>
+            </div>
+            <div className="glass-panel rounded-2xl p-6 text-center">
+              <p className="text-xs text-gray-500 uppercase tracking-widest mb-1">Predicted</p>
+              <p className="text-2xl font-bold text-white">{result.predicted_emotion}</p>
+            </div>
+            <div className="glass-panel rounded-2xl p-6 text-center">
+              <p className="text-xs text-gray-500 uppercase tracking-widest mb-1">Confidence</p>
+              <p className="text-2xl font-bold text-blue-400">{(result.confidence * 100).toFixed(0)}%</p>
+            </div>
+            <div className={`glass-panel rounded-2xl p-6 text-center ${result.match ? '!bg-green-500/10 !border-green-500/20' : '!bg-red-500/10 !border-red-500/20'}`}>
+              <p className={`text-xs uppercase tracking-widest mb-1 ${result.match ? 'text-green-400/70' : 'text-red-400/70'}`}>Match</p>
+              <div className={`flex items-center justify-center gap-2 font-bold text-xl ${result.match ? 'text-green-400' : 'text-red-400'}`}>
+                {result.match ? <CheckCircle size={20} /> : <XCircle size={20} />} 
+                {result.match ? "Success" : "Mismatch"}
+              </div>
+            </div>
+            
+            <div className="glass-panel rounded-2xl p-6 col-span-2 md:col-span-4 text-left">
+              <h4 className="text-lg font-bold text-blue-400 mb-4 flex items-center gap-2">
+                <Sparkles size={18} /> AI Recommendations
+              </h4>
+              <div className="text-gray-300 text-sm whitespace-pre-line leading-relaxed pl-2 border-l-2 border-white/10">
+                {result.recommendations ? (
+                  typeof result.recommendations === 'object' ? 
+                    (result.recommendations.full_recommendation || JSON.stringify(result.recommendations)) : 
+                    result.recommendations
+                ) : (
+                  result.match ? "Great job! Your performance matches the intended emotion perfectly." : "No specific recommendations provided."
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
   );
 };
 

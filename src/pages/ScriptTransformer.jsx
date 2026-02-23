@@ -1,339 +1,144 @@
-import React, { useState } from "react";
-import {
-  Box,
-  Button,
-  Container,
-  Typography,
-  Paper,
-  TextField,
-  MenuItem,
-  FormControl,
-  Select,
-  InputLabel,
-  CircularProgress,
-} from "@mui/material";
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { ArrowLeft, Wand2, Download, FileText } from 'lucide-react';
 
-import UploadFileIcon from "@mui/icons-material/UploadFile";
-import DownloadIcon from "@mui/icons-material/Download";
+const SCRIPT_API_URL_TEXT = "https://Arjun9036-script-writer-api.hf.space/generate-script/";
 
-// ✅ DOCX generator
-import { Document, Packer, Paragraph } from "docx";
-import { saveAs } from "file-saver";
-
-export default function ScriptWriterApp() {
-  const [genre, setGenre] = useState("Comedy");
-  const [scriptText, setScriptText] = useState("");
-  const [file, setFile] = useState(null);
+const ScriptTransformer = () => {
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
-  const [errorMessage, setErrorMessage] = useState(null);
+  const [genre, setGenre] = useState(''); // Changed default to empty string for manual input
+  const [text, setText] = useState('');
+  const [error, setError] = useState('');
 
-  const API_BASE = "https://Arjun9036-script-writer-api.hf.space";
-
-  // ✅ Generate Real DOCX File
-  const downloadAsDoc = async () => {
-    const content =
-      result?.structured_script ||
-      result?.final_script ||
-      "No output available.";
-
-    const paragraphs = content.split("\n").map(
-      (line) =>
-        new Paragraph({
-          text: line,
-        })
-    );
-
-    const doc = new Document({
-      sections: [
-        {
-          properties: {},
-          children: paragraphs,
-        },
-      ],
-    });
-
-    const blob = await Packer.toBlob(doc);
-    saveAs(blob, `Transformed_${genre}_Script.docx`);
-  };
-
-  // ✅ Submit Handler
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setErrorMessage(null);
-
-    if (!file && !scriptText.trim()) {
-      setErrorMessage("Please provide script text or upload a PDF.");
-      return;
-    }
-
+  const handleGenerate = async () => {
+    if(!text.trim()) return;
     setLoading(true);
+    setError('');
     setResult(null);
 
+    // Use user input or default to "Screenplay" if empty
+    const selectedGenre = genre.trim() || "Screenplay";
+
     try {
-      let response;
+      const response = await fetch(SCRIPT_API_URL_TEXT, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ original_script: text, genre: selectedGenre }),
+      });
 
-      if (file) {
-        const formData = new FormData();
-        formData.append("file", file);
-        formData.append("genre", genre);
-
-        response = await fetch(`${API_BASE}/generate-script-from-pdf/`, {
-          method: "POST",
-          body: formData,
-        });
-      } else {
-        response = await fetch(`${API_BASE}/generate-script/`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ original_script: scriptText, genre }),
-        });
-      }
-
-      if (!response.ok) {
-        let errText;
-        try {
-          const errJson = await response.json();
-          errText = errJson.detail || JSON.stringify(errJson);
-        } catch (err) {
-          errText = await response.text();
-        }
-        throw new Error(`Server error: ${response.status} ${errText}`);
-      }
-
+      if (!response.ok) throw new Error("Failed to generate script. Check API.");
       const data = await response.json();
-      setResult(data);
-    } catch (error) {
-      console.error("Request failed:", error);
-      setErrorMessage(error.message || "Error: Could not process request.");
+      setResult(data.structured_script || data.final_script);
+      
+    } catch (err) {
+      console.error(err);
+      setError("Failed to connect to the backend. Please check if the API is active.");
     } finally {
       setLoading(false);
     }
   };
 
+  const handleDownload = () => {
+    if (!result) return;
+    const element = document.createElement("a");
+    const file = new Blob([result], {type: 'text/plain'});
+    element.href = URL.createObjectURL(file);
+    element.download = `script_${genre || 'generated'}.txt`;
+    document.body.appendChild(element); 
+    element.click();
+    document.body.removeChild(element);
+  };
+
   return (
-    <Box
-      sx={{
-        minHeight: "100vh",
-        background: "linear-gradient(to right, #000000, #1a1a1a)",
-        color: "white",
-        py: 10,
-        px: { xs: 2, sm: 6 },
-      }}
-    >
-      <Container maxWidth="md">
-        {/* Title */}
-        <Typography
-          variant="h3"
-          align="center"
-          fontWeight="bold"
-          sx={{
-            mb: 6,
-            color: "orange",
-            textShadow: "0px 0px 12px rgba(255,140,0,0.6)",
-          }}
-        >
-          ✨ Script Writer AI
-        </Typography>
+    <div className="min-h-screen p-4 md:p-8 relative">
+      <div className="ambient-glow"></div>
+      <button onClick={() => navigate('/')} className="flex items-center gap-2 text-gray-400 hover:text-white mb-8 transition-colors">
+        <ArrowLeft size={20} /> Back to Home
+      </button>
 
-        {/* Form Card */}
-        <Paper
-          elevation={10}
-          sx={{
-            p: 5,
-            borderRadius: 4,
-            backgroundColor: "#111",
-            border: "1px solid rgba(255,255,255,0.15)",
-            backdropFilter: "blur(12px)",
-            boxShadow: "0px 0px 25px rgba(255,140,0,0.25)",
-          }}
-        >
-          <form onSubmit={handleSubmit}>
-            {/* Genre Select */}
-            <FormControl fullWidth sx={{ mb: 3 }}>
-              <InputLabel sx={{ color: "gray" }}>Target Genre</InputLabel>
-              <Select
-                value={genre}
-                label="Target Genre"
-                onChange={(e) => setGenre(e.target.value)}
-                sx={{
-                  color: "white",
-                  backgroundColor: "#222",
-                  borderRadius: 2,
-                  "& .MuiSvgIcon-root": { color: "white" },
-                }}
-              >
-                {["Comedy", "Drama", "Thriller", "Romance", "Action"].map(
-                  (g) => (
-                    <MenuItem key={g} value={g}>
-                      {g}
-                    </MenuItem>
-                  )
-                )}
-              </Select>
-            </FormControl>
+      <div className="max-w-5xl mx-auto grid lg:grid-cols-2 gap-8 animate-fade-in items-start">
+        {/* Input Section */}
+        <div className="space-y-6 h-full">
+          <div>
+            <h2 className="text-4xl font-bold mb-2">Script <span className="text-orange-500">Transformer</span></h2>
+            <p className="text-gray-400">Convert standard text into industry-format screenplays.</p>
+          </div>
 
-            {/* Text Area */}
-            <Typography sx={{ mb: 1, color: "#ccc" }}>
-              Paste Script Text
-            </Typography>
-            <TextField
-              multiline
-              rows={6}
-              fullWidth
-              value={scriptText}
-              onChange={(e) => setScriptText(e.target.value)}
-              placeholder="Paste your screenplay here..."
-              sx={{
-                mb: 3,
-                backgroundColor: "white",
-                borderRadius: 2,
-                "& textarea": { color: "black" },
-              }}
+          <div className="glass-panel rounded-2xl p-6">
+            <label className="block text-sm font-medium text-gray-400 mb-2">Target Genre</label>
+            
+            {/* Manual Text Input for Genre */}
+            <input 
+              type="text" 
+              value={genre}
+              onChange={(e) => setGenre(e.target.value)}
+              placeholder="e.g. Sci-Fi, Rom-Com, Noir..."
+              className="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white placeholder-gray-600 focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none transition-all mb-6"
             />
 
-            {/* Upload + Generate */}
-            <Box
-              sx={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                flexWrap: "wrap",
-                gap: 3,
-              }}
-            >
-              {/* ✅ Upload + File Confirmation */}
-              <Box>
-                <Button
-                  variant="contained"
-                  component="label"
-                  startIcon={<UploadFileIcon />}
-                  sx={{
-                    backgroundColor: "#ff9800",
-                    fontWeight: "bold",
-                    px: 3,
-                    py: 1.5,
-                    borderRadius: "30px",
-                    "&:hover": { backgroundColor: "#e07c00" },
-                  }}
-                >
-                  Upload PDF
-                  <input
-                    hidden
-                    type="file"
-                    accept="application/pdf"
-                    onChange={(e) =>
-                      setFile(e.target.files?.[0] || null)
-                    }
-                  />
-                </Button>
-
-                {/* ✅ Show uploaded file */}
-                {file && (
-                  <Typography
-                    sx={{
-                      mt: 1,
-                      ml: 1,
-                      color: "#4caf50",
-                      fontSize: "0.9rem",
-                      fontWeight: "bold",
-                    }}
-                  >
-                    ✅ Uploaded: {file.name}
-                  </Typography>
-                )}
-              </Box>
-
-              {/* Generate */}
-              <Button
-                type="submit"
-                variant="contained"
-                sx={{
-                  backgroundColor: "orange",
-                  fontWeight: "bold",
-                  px: 4,
-                  py: 1.5,
-                  borderRadius: "30px",
-                  "&:hover": { backgroundColor: "#cc5500" },
-                }}
-                disabled={loading}
+            <label className="block text-sm font-medium text-gray-400 mb-2">Your Draft / Ideas</label>
+            <textarea 
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              className="w-full h-64 bg-black/40 border border-white/10 rounded-xl p-4 text-gray-200 placeholder-gray-600 focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none transition-all resize-none script-font"
+              placeholder="John sits at the cafe waiting for Sarah. He is nervous..."
+            ></textarea>
+            
+            <div className="flex items-center justify-between mt-4">
+              <div className="text-xs text-gray-500">
+                Powered by AI
+              </div>
+              <button 
+                onClick={handleGenerate} 
+                disabled={loading || !text} 
+                className="bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-500 hover:to-red-500 text-white shadow-lg shadow-orange-900/20 px-6 py-3 rounded-full font-semibold transition-all flex items-center gap-2 disabled:opacity-50"
               >
-                {loading ? (
-                  <CircularProgress size={24} sx={{ color: "white" }} />
-                ) : (
-                  "🚀 Generate Script"
-                )}
-              </Button>
-            </Box>
-
-            {/* Error */}
-            {errorMessage && (
-              <Typography
-                sx={{
-                  mt: 3,
-                  color: "red",
-                  backgroundColor: "#330000",
-                  p: 2,
-                  borderRadius: 2,
-                }}
-              >
-                {errorMessage}
-              </Typography>
-            )}
-          </form>
-        </Paper>
+                <Wand2 size={18} />
+                {loading ? "Transforming..." : "Generate Script"}
+              </button>
+            </div>
+            {error && <p className="text-red-500 text-sm mt-3">{error}</p>}
+          </div>
+        </div>
 
         {/* Output Section */}
-        {result && (
-          <Paper
-            elevation={8}
-            sx={{
-              mt: 6,
-              p: 4,
-              backgroundColor: "#0f0f0f",
-              borderRadius: 3,
-              border: "1px solid rgba(255,255,255,0.1)",
-            }}
-          >
-            <Typography variant="h5" sx={{ color: "orange", mb: 2 }}>
-              📜 Generated Script
-            </Typography>
+        <div className="h-full flex flex-col">
+          <div className="flex justify-between items-end mb-4 h-10">
+            <div>
+              <h3 className="text-xl font-bold text-white">Result</h3>
+              <p className="text-sm text-gray-500">Industry Standard Format</p>
+            </div>
+            {result && (
+              <button 
+                onClick={handleDownload}
+                className="bg-white/5 hover:bg-white/10 text-white border border-white/10 px-4 py-2 rounded-full font-semibold transition-all flex items-center gap-2 text-sm"
+              >
+                <Download size={18} /> Save Script
+              </button>
+            )}
+          </div>
 
-            <Typography
-              component="pre"
-              sx={{
-                whiteSpace: "pre-wrap",
-                color: "#ddd",
-                fontFamily: "monospace",
-                fontSize: "1rem",
-                lineHeight: 1.6,
-              }}
-            >
-              {result.structured_script ||
-                result.final_script ||
-                "No output found."}
-            </Typography>
-
-            {/* ✅ Download Button */}
-            <Button
-              variant="contained"
-              startIcon={<DownloadIcon />}
-              sx={{
-                mt: 3,
-                backgroundColor: "#28a745",
-                px: 4,
-                py: 1.5,
-                borderRadius: "30px",
-                fontWeight: "bold",
-                "&:hover": { backgroundColor: "#1e7e34" },
-              }}
-              onClick={downloadAsDoc}
-            >
-              📥 Download as Word (.docx)
-            </Button>
-          </Paper>
-        )}
-      </Container>
-    </Box>
+          <div className="glass-panel bg-black/60 rounded-xl p-8 flex-grow min-h-[500px] border-l-4 border-l-orange-500 overflow-y-auto script-font shadow-inner">
+            {loading ? (
+              <div className="flex flex-col items-center justify-center h-full text-gray-500 gap-4">
+                <div className="w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full animate-spin"></div>
+                <p>AI is rewriting your scene...</p>
+              </div>
+            ) : result ? (
+              <pre className="whitespace-pre-wrap text-gray-300 leading-relaxed">{result}</pre>
+            ) : (
+              <div className="flex flex-col items-center justify-center h-full text-gray-600">
+                <span className="opacity-20 mb-2"><FileText size={48} /></span>
+                <p>Generated script will appear here</p>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
   );
-}
+};
+
+export default ScriptTransformer;
